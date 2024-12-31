@@ -1,3 +1,6 @@
+#ifndef STOCKPROCESSOR_h
+#define STOCKPROCESSOR_h
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -30,3 +33,5 @@ private:
     void removeCompletedOrdersFromList(std::deque<Order> &orders);
     void processOrder(Order &order, float *previousPrice, std::deque<Order> &orders, std::ofstream &newFile);  
 };
+
+#endif 
