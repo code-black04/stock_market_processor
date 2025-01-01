@@ -3,17 +3,14 @@
 
 
 Order::Order(const std::string &id, char t, int qty, double pr)
-    : orderID(id), type(t), quantity(qty), price(pr), hasPrice(pr != -1.0), hasNull(false), transactionList({}) {}
-Order::Order(bool null)
-    : hasNull(null), transactionList({}) {}
+    : orderID(id), type(t), quantity(qty), price(pr), hasPrice(pr != -1.0), transactionList({}) {}
 
 std::string Order::getOrderID() const { return orderID; }
 char Order::getType() const { return type; }
 int Order::getQuantity() const { return quantity; }
 double Order::getPrice() const { return price; }
 bool Order::priceAvailable() const { return hasPrice; }
-bool Order::isEmptyOrder() const { return hasNull; }
-std::list<Transaction> Order::getTransactionList() const { return transactionList; }
+std::vector<Transaction<std::string, double>> Order::getTransactionList() const { return transactionList; }
 
 // Utility Function
 void Order::display() const
@@ -58,7 +55,7 @@ int Order::quantityAvailable() const
     }
     return (getQuantity() - quantityTraded);
 }
-void Order::add_transaction(const Transaction &trade)
+void Order::add_transaction(const Transaction<std::string, double> &trade)
 {
     transactionList.push_back(trade);
 }

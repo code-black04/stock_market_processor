@@ -3,21 +3,26 @@
 
 #include <string>
 #include <iostream>
+
+template <typename IDType, typename PriceType>
+
 class Transaction
 {
 private:
-    std::string orderID;
+    IDType orderID;
     char type; // 'B' for Buy, 'S' for Sell
     int quantity;
-    double price;
+    PriceType price;
 
 public:
-    Transaction(const std::string &id, char t, int qty, double pr);
+    Transaction(const IDType &id, char t, int qty, PriceType pr);
 
-    std::string getOrderID() const;
+    IDType getOrderID() const;
     char getType() const;
     int getQuantity() const;
-    double getPrice() const;
+    PriceType getPrice() const;
 };
 
-#endif // TRANSACTION_H
+#include "transaction.tpp" // Include template implementation
+
+#endif //TRANSACTION_H

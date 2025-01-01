@@ -1,5 +1,5 @@
+#include <regex>
 #include "stock_processor.h"
-#include <iostream>
 
 int main(int argc, char *argv[])
 {
@@ -9,11 +9,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::string outputfilename = argv[1];
+    std::string outputFilename = argv[1];
     std::regex numberRegex("\\d+");
     std::smatch match;
 
-    if (std::regex_search(outputfilename, match, numberRegex))
+    if (std::regex_search(outputFilename, match, numberRegex))
     {
         std::cout << "Extracted number: " << match.str() << std::endl;
     }
@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
         std::cout << "No number found in the filename." << std::endl;
     }
 
-    outputfilename = "output" + match.str() + ".txt";
-    StockProcessor processor(argv[1], outputfilename);
+    outputFilename = "output" + match.str() + ".txt";
+    StockProcessor processor(argv[1], outputFilename);
     processor.process();
 
     return 0;

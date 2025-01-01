@@ -1,19 +1,14 @@
-#include "stock_processor.h"
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <vector>
-#include <float.h>
-#include "order.h"
-#include <iomanip>
-#include <algorithm>
 #include <deque>
+#include <algorithm>
 #include <string>
-#include <regex>
+#include "order.h"
 #include "transaction.h"
+#include "stock_processor.h"
 
-StockProcessor::StockProcessor(const std::string &filename, const std::string &outputfilename)
-    : file(filename), newFile(outputfilename), orders(), previousPrice(0.00f)
+StockProcessor::StockProcessor(const std::string &filename, const std::string &outputFilename)
+    : file(filename), newFile(outputFilename), pendingOrders(), previousPrice(0.00f)
 {
     if (!file.is_open())
     {
@@ -39,10 +34,10 @@ void StockProcessor::process()
     bool firstLine = true;
     while (std::getline(file, line))
     {
-        std::istringstream iss(line);
+        std::istringstream row(line);
         if (firstLine)
         {
-            iss >> previousPrice;
+            row >> previousPrice;
             firstLine = false;
             continue;
         }
@@ -53,21 +48,21 @@ void StockProcessor::process()
         double price = -1.0;
 
         // Parse line
-        if (iss >> id >> type >> quantity)
+        if (row >> id >> type >> quantity)
         {
-            iss >> price;
+            row >> price;
             Order order(id, type, quantity, price);
-            processOrder(order, &previousPrice, orders, newFile);
+            processOrder(order, &previousPrice, pendingOrders, newFile);
         }
-        removeCompletedOrdersFromList(orders);
+        removeCompletedOrdersFromList(pendingOrders);
     }
 
-    writeFinalLogForUnexecutedOrders(orders, newFile);
+    writeFinalLogForUnexecutedOrders(pendingOrders, newFile);
 }
 
-void StockProcessor::writeFinalLogForUnexecutedOrders(const std::deque<Order> &orders, std::ofstream &newFile)
+void StockProcessor::writeFinalLogForUnexecutedOrders(const std::deque<Order> &pendingOrders, std::ofstream &newFile)
 {
-    for (const auto &order : orders)
+    for (const auto &order : pendingOrders)
     {
         if (order.quantityAvailable() > 0)
         {
@@ -77,21 +72,21 @@ void StockProcessor::writeFinalLogForUnexecutedOrders(const std::deque<Order> &o
     }
 }
 
-void StockProcessor::writeLogForOrderExecution(std::deque<Transaction> trades, std::ofstream &newFile)
+void StockProcessor::writeLogForOrderExecution(std::vector<Transaction<std::string, double>> trades, std::ofstream &newFile)
 {
-    std::sort(trades.begin(), trades.end(), [](const Transaction &a, const Transaction &b)
+    std::sort(trades.begin(), trades.end(), [](const Transaction<std::string, double> &a, const Transaction<std::string, double> &b)
               { return a.getType() < b.getType(); });
     for (const auto &o : trades)
     {
         if (o.getType() == 'B')
         {
-            std::cout << "order " << o.getOrderID() << " " << o.getQuantity() << " shares purchased at price " << o.getPrice() << std::endl;
-            newFile << "order " << o.getOrderID() << " " << o.getQuantity() << " shares purchased at price " << o.getPrice() << std::endl;
+            std::cout << std::fixed << std::setprecision(2) << "order " << o.getOrderID() << " " << o.getQuantity() << " shares purchased at price " << o.getPrice() << std::endl;
+            newFile << std::fixed << std::setprecision(2) << "order " << o.getOrderID() << " " << o.getQuantity() << " shares purchased at price " << o.getPrice() << std::endl;
         }
         else
         {
-            std::cout << "order " << o.getOrderID() << " " << o.getQuantity() << " shares sold at price " << o.getPrice() << std::endl;
-            newFile << "order " << o.getOrderID() << " " << o.getQuantity() << " shares sold at price " << o.getPrice() << std::endl;
+            std::cout << std::fixed << std::setprecision(2) << "order " << o.getOrderID() << " " << o.getQuantity() << " shares sold at price " << o.getPrice() << std::endl;
+            newFile << std::fixed << std::setprecision(2) << "order " << o.getOrderID() << " " << o.getQuantity() << " shares sold at price " << o.getPrice() << std::endl;
         }
     }
 }
@@ -119,31 +114,31 @@ void StockProcessor::matchOrders(Order &newOrder, Order &previousOrder, float *p
     int minQuantity = std::min(newOrder.quantityAvailable(), previousOrder.quantityAvailable());
     if (newOrder.priceAcceptable(price) && minQuantity > 0)
     {
-        newOrder.add_transaction(Transaction(previousOrder.getOrderID(), previousOrder.getType(), minQuantity, price));
-        previousOrder.add_transaction(Transaction(newOrder.getOrderID(), newOrder.getType(), minQuantity, price));
+        newOrder.add_transaction(Transaction<std::string, double>(previousOrder.getOrderID(), previousOrder.getType(), minQuantity, price));
+        previousOrder.add_transaction(Transaction<std::string, double>(newOrder.getOrderID(), newOrder.getType(), minQuantity, price));
         writeLogForOrderExecution({newOrder.getTransactionList().back(), previousOrder.getTransactionList().back()}, newFile);
         *previousPrice = price;
     }
 }
 
-void StockProcessor::removeCompletedOrdersFromList(std::deque<Order> &orders)
+void StockProcessor::removeCompletedOrdersFromList(std::deque<Order> &pendingOrders)
 {
-    for (auto it = orders.begin(); it != orders.end(); ++it)
+    for (auto it = pendingOrders.begin(); it != pendingOrders.end(); ++it)
     {
         if (it->quantityAvailable() <= 0)
         {
-            orders.erase(it);
+            pendingOrders.erase(it);
             break;
         }
     }
 }
 
-void StockProcessor::processOrder(Order &order, float *previousPrice, std::deque<Order> &orders, std::ofstream &newFile)
+void StockProcessor::processOrder(Order &order, float *previousPrice, std::deque<Order> &pendingOrders, std::ofstream &newFile)
 {
     std::vector<Order *> buyOrders = {};
     std::vector<Order *> sellOrders = {};
 
-    for (auto &torder : orders)
+    for (auto &torder : pendingOrders)
     {
         if (torder.getType() == 'B' && torder.priceAvailable())
             buyOrders.push_back(&torder);
@@ -175,8 +170,9 @@ void StockProcessor::processOrder(Order &order, float *previousPrice, std::deque
             matchOrders(order, *torder, previousPrice, newFile);
         }
     }
+    // if new order still has quantity then add it to pending orders list
     if (order.quantityAvailable() > 0)
     {
-        orders.push_back(order);
+        pendingOrders.push_back(order);
     }
 }
