@@ -8,14 +8,11 @@ CXX     = g++
 CXXFLAGS = -O0 -g3 -std=c++17
 
 All: all
-all: main transaction.o order.o stock_processor.o
+all: main order.o stock_processor.o
 
 # These are the two executables to be produced
-main: main.cpp transaction.o order.o stock_processor.o
-	$(CXX) $(CXXFLAGS) main.cpp transaction.o order.o stock_processor.o -o main
-
-transaction.o: transaction.cpp transaction.h
-	$(CXX) $(CXXFLAGS) -c transaction.cpp -o transaction.o
+main: main.cpp order.o stock_processor.o
+	$(CXX) $(CXXFLAGS) main.cpp order.o stock_processor.o -o main
 
 order.o: order.cpp order.h
 	$(CXX) $(CXXFLAGS) -c order.cpp -o order.o
