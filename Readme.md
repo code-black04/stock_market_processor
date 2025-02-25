@@ -1,6 +1,3 @@
-# Assignment: cw2
-
-
 The program is built and managed using a Makefile, which automates the compilation and cleanup tasks.
 
 ---
